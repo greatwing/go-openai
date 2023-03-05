@@ -19,6 +19,7 @@ const (
 type AudioRequest struct {
 	Model    string
 	FilePath string
+	FileData []byte
 }
 
 // AudioResponse represents a response structure for audio API.
@@ -71,12 +72,20 @@ func (c *Client) callAudioAPI(
 // audioMultipartForm creates a form with audio file contents and the name of the model to use for
 // audio processing.
 func audioMultipartForm(request AudioRequest, w *multipart.Writer) error {
-	f, err := os.Open(request.FilePath)
-	if err != nil {
-		return fmt.Errorf("opening audio file: %w", err)
+	var f io.Reader
+	var err error
+
+	if request.FileData == nil {
+		//read from file
+		f, err = os.Open(request.FilePath)
+		if err != nil {
+			return fmt.Errorf("opening audio file: %w", err)
+		}
+	} else {
+		f = bytes.NewReader(request.FileData)
 	}
 
-	fw, err := w.CreateFormFile("file", f.Name())
+	fw, err := w.CreateFormFile("file", request.FilePath)
 	if err != nil {
 		return fmt.Errorf("creating form file: %w", err)
 	}
